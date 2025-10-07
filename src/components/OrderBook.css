@@ -1,0 +1,154 @@
+.orderbook {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.orderbook-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.orderbook-header h3 {
+  color: white;
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.refresh-btn, .retry-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.refresh-btn:hover, .retry-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.orderbook-info {
+  margin-bottom: 20px;
+}
+
+.min-order-size {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px 12px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.orderbook-content {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.asks-section, .bids-section {
+  flex: 1;
+}
+
+.section-header {
+  color: white;
+  font-weight: 600;
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.order-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.ask-row {
+  background: rgba(255, 71, 87, 0.1);
+  color: #ff4757;
+}
+
+.bid-row {
+  background: rgba(76, 175, 80, 0.1);
+  color: #4CAF50;
+}
+
+.order-row .price {
+  font-weight: 600;
+}
+
+.order-row .size {
+  opacity: 0.8;
+}
+
+.spread {
+  text-align: center;
+  padding: 10px;
+}
+
+.spread-info {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px 16px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.no-orders {
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+}
+
+.loading, .error, .no-data {
+  text-align: center;
+  padding: 20px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.error {
+  color: #ff4757;
+}
+
+/* Responsive design */
+@media (min-width: 768px) {
+  .orderbook-content {
+    flex-direction: row;
+  }
+  
+  .asks-section {
+    order: 2;
+  }
+  
+  .bids-section {
+    order: 1;
+  }
+  
+  .spread {
+    order: 3;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+  }
+}

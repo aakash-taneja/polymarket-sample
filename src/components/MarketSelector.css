@@ -1,0 +1,120 @@
+.market-selector {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.selector-header h3 {
+  color: white;
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.fetch-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.fetch-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.fetch-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.no-markets {
+  text-align: center;
+  padding: 40px 20px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.markets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.market-item {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.market-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.market-item.selected {
+  background: rgba(102, 126, 234, 0.2);
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.market-question {
+  color: white;
+  font-weight: 500;
+  margin-bottom: 8px;
+  line-height: 1.4;
+  font-size: 0.95rem;
+}
+
+.market-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.volume {
+  color: #4CAF50;
+  font-weight: 600;
+}
+
+.end-date {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Scrollbar styling */
+.markets-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.markets-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.markets-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.markets-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}

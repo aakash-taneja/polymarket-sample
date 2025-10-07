@@ -1,0 +1,117 @@
+.wallet-connection {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+}
+
+.connection-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 40px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  max-width: 400px;
+  width: 100%;
+}
+
+.metamask-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
+.connection-card h2 {
+  color: white;
+  margin-bottom: 15px;
+  font-size: 1.8rem;
+}
+
+.connection-card p {
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 30px;
+  line-height: 1.5;
+}
+
+.connect-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 30px;
+}
+
+.connect-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.connect-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.spinner-small {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.requirements {
+  text-align: left;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.requirements h4 {
+  color: white;
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+}
+
+.requirements ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.requirements li {
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 8px;
+  padding-left: 20px;
+  position: relative;
+}
+
+.requirements li:before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #4CAF50;
+  font-weight: bold;
+}
+
+.error-message {
+  background: rgba(255, 71, 87, 0.2);
+  border: 1px solid #ff4757;
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+}
