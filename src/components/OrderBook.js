@@ -1,23 +1,38 @@
+// Replace the entire OrderBook component with:
 import React, { useState, useEffect } from 'react';
 import './OrderBook.css';
 
-const OrderBook = ({ tokenId, onOrderBookUpdate, onCheckOrderBook }) => {
+const OrderBook = ({ selectedMarket, onOrderBookUpdate, onCheckOrderBook }) => {
   const [orderBook, setOrderBook] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedToken, setSelectedToken] = useState('YES'); // 'YES' or 'NO'
+
+  // Get current token ID based on selected token type
+  const getCurrentTokenId = () => {
+    if (!selectedMarket) return null;
+    return selectedToken === 'YES' ? selectedMarket.yesTokenId : selectedMarket.noTokenId;
+  };
 
   useEffect(() => {
-    if (tokenId) {
+    const currentTokenId = getCurrentTokenId();
+    if (currentTokenId) {
       fetchOrderBook();
     }
-  }, [tokenId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedMarket, selectedToken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchOrderBook = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const orderBookData = await onCheckOrderBook(tokenId);
+      const currentTokenId = getCurrentTokenId();
+      if (!currentTokenId) {
+        setError('No token selected');
+        return;
+      }
+      
+      const orderBookData = await onCheckOrderBook(currentTokenId);
       
       if (orderBookData) {
         setOrderBook(orderBookData);
@@ -76,8 +91,24 @@ const OrderBook = ({ tokenId, onOrderBookUpdate, onCheckOrderBook }) => {
   return (
     <div className="orderbook">
       <div className="orderbook-header">
-        <h3>Order Book</h3>
-        <button onClick={fetchOrderBook} className="refresh-btn">Refresh</button>
+        <h3>Order Book - {selectedToken} Token</h3>
+        <div className="header-controls">
+          <div className="token-selector">
+            <button 
+              className={`token-btn ${selectedToken === 'YES' ? 'active' : ''}`}
+              onClick={() => setSelectedToken('YES')}
+            >
+              YES
+            </button>
+            <button 
+              className={`token-btn ${selectedToken === 'NO' ? 'active' : ''}`}
+              onClick={() => setSelectedToken('NO')}
+            >
+              NO
+            </button>
+          </div>
+          <button onClick={fetchOrderBook} className="refresh-btn">Refresh</button>
+        </div>
       </div>
 
       <div className="orderbook-info">

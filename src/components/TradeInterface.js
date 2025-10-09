@@ -154,11 +154,11 @@ const TradeInterface = ({ market, orderBook, onPlaceOrder, loading }) => {
         </div>
 
         <div className="form-group">
-          <label>Size (Min: {market.orderMinSize || 5})</label>
+          <label>Size (Min: {market.orderMinSize})</label>
           <input
             type="number"
             step="1"
-            min={market.orderMinSize || 5}
+            min={market.orderMinSize}
             value={size}
             onChange={(e) => setSize(e.target.value)}
             placeholder="5"

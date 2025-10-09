@@ -5,6 +5,7 @@ import MarketSelector from './components/MarketSelector';
 import OrderBook from './components/OrderBook';
 import TradeInterface from './components/TradeInterface';
 import { ClobClient, OrderType } from '@polymarket/clob-client';
+import { ethers } from 'ethers';
 
 function App() {
   const [account, setAccount] = useState(null);
@@ -17,6 +18,34 @@ function App() {
   const [orderBook, setOrderBook] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [usdcAllowance, setUsdcAllowance] = useState(null);
+  const [usdcBalance, setUsdcBalance] = useState(null);
+
+  // Global error handler for WebSocket and other unhandled errors
+  useEffect(() => {
+    const handleError = (event) => {
+      if (event.error && event.error.message && event.error.message.includes('WebSocket')) {
+        console.warn('WebSocket error caught and handled:', event.error.message);
+        // Don't show WebSocket errors to the user as they don't affect core functionality
+        event.preventDefault();
+      }
+    };
+
+    const handleUnhandledRejection = (event) => {
+      if (event.reason && event.reason.message && event.reason.message.includes('WebSocket')) {
+        console.warn('WebSocket promise rejection caught and handled:', event.reason.message);
+        event.preventDefault();
+      }
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
 
   // Initialize CLOB client when wallet is connected
   useEffect(() => {
@@ -24,6 +53,121 @@ function App() {
       initializeClobClient();
     }
   }, [account, provider]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Check USDC status when wallet connects
+  useEffect(() => {
+    if (account && provider) {
+      checkUSDCStatus();
+    }
+  }, [account, provider]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Check USDC balance and allowance
+  const checkUSDCStatus = async () => {
+    try {
+      if (!provider || !account) return;
+
+      const signer = provider.getSigner();
+      
+      // USDC contract address on Polygon
+      const USDC_ADDRESS = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359";
+      
+      // Create USDC contract instance
+      const usdcContract = new ethers.Contract(
+        USDC_ADDRESS,
+        [
+          "function balanceOf(address account) view returns (uint256)",
+          "function allowance(address owner, address spender) view returns (uint256)",
+          "function decimals() view returns (uint8)"
+        ],
+        signer
+      );
+
+      // Get USDC balance
+      const balance = await usdcContract.balanceOf(account);
+      const decimals = await usdcContract.decimals();
+      const formattedBalance = ethers.utils.formatUnits(balance, decimals);
+      setUsdcBalance(formattedBalance);
+
+      const spenderAddress = "0x2d6454a32A77B67Cb52B33f5a38112402c24F2b8";
+      // Get current allowance
+      const allowance = await usdcContract.allowance(account, spenderAddress);
+      const formattedAllowance = ethers.utils.formatUnits(allowance, decimals);
+      setUsdcAllowance(formattedAllowance);
+
+      console.log('USDC Status:', {
+        balance: formattedBalance,
+        allowance: formattedAllowance,
+        spenderAddress: spenderAddress
+      });
+
+      return {
+        balance: formattedBalance,
+        allowance: formattedAllowance,
+        spenderAddress: spenderAddress,
+        usdcContract: usdcContract
+      };
+    } catch (error) {
+      console.error('Failed to check USDC status:', error);
+      return null;
+    }
+  };
+
+  // Approve USDC allowance
+  const approveUSDC = async (amount = "1000") => {
+    try {
+      if (!provider || !account) {
+        throw new Error('Wallet not connected');
+      }
+
+      setLoading(true);
+      setError(null);
+
+      const signer = provider.getSigner();
+      
+      // USDC contract address on Polygon
+      const USDC_ADDRESS = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359";
+      
+      // Create USDC contract instance
+      const usdcContract = new ethers.Contract(
+        USDC_ADDRESS,
+        [
+          "function approve(address spender, uint256 amount) returns (bool)",
+          "function decimals() view returns (uint8)"
+        ],
+        signer
+      );
+
+      const spenderAddress = "0x2d6454a32A77B67Cb52B33f5a38112402c24F2b8";
+
+      const decimals = await usdcContract.decimals();
+      const approvalAmount = ethers.utils.parseUnits(amount, decimals);
+
+      console.log('Approving USDC allowance:', {
+        spender: spenderAddress,
+        amount: amount,
+        amountWei: approvalAmount.toString()
+      });
+
+      // Approve USDC spending
+      const tx = await usdcContract.approve(spenderAddress, approvalAmount);
+      console.log('USDC approval transaction:', tx.hash);
+      
+      // Wait for transaction confirmation
+      await tx.wait();
+      console.log('USDC allowance approved successfully!');
+
+      // Refresh USDC status
+      await checkUSDCStatus();
+
+      return tx;
+    } catch (error) {
+      console.error('USDC approval failed:', error);
+      setError(`USDC approval failed: ${error.message}`);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const initializeClobClient = async () => {
     try {
@@ -34,34 +178,43 @@ function App() {
       const host = 'https://clob.polymarket.com';
       const signer = provider.getSigner();
       
-      console.log('Creating temporary CLOB client for API key generation...');
       // Create a temporary client to generate API credentials
       const tempClient = new ClobClient(host, 137, signer);
       
       console.log('Creating/deriving API key...');
       try {
-        // Create or derive API key with timeout
+        // Create API key with single attempt and longer timeout
+        let credentials = null;
+        
+        console.log('Calling tempClient.createOrDeriveApiKey()...');
+        console.log('⚠️  IMPORTANT: Please check MetaMask for a signing request and approve it!');
+        
+        const startTime = Date.now();
+        
+        // Use only the standard method with longer timeout
         const apiKeyPromise = tempClient.createOrDeriveApiKey();
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('API key creation timeout')), 15000)
+          setTimeout(() => reject(new Error('API key creation timeout')), 60000) // Increased to 60 seconds
         );
         
-        const credentials = await Promise.race([apiKeyPromise, timeoutPromise]);
-        console.log('API credentials created successfully:', credentials);
+        console.log('Waiting for API key creation...');
+        credentials = await Promise.race([apiKeyPromise, timeoutPromise]);
+        const endTime = Date.now();
+        console.log(`API credentials created successfully in ${endTime - startTime}ms:`, credentials);
         setApiCredentials(credentials);
         
         // Now create the actual client with credentials
         console.log('Creating CLOB client with API credentials...');
-        const client = new ClobClient(host, 137, signer, credentials, 0, account);
+        const client = new ClobClient(host, 137, signer, credentials, 2, "0x2d6454a32A77B67Cb52B33f5a38112402c24F2b8");
         
-        // Test the client
-        console.log('Testing client with API credentials...');
-        try {
-          const testTokenId = "60487116984468020978247225474488676749601001829886755968952521846780452448915";
-          const testOrderBook = await client.getOrderBook(testTokenId);
-          console.log('Client test successful:', testOrderBook);
-        } catch (testError) {
-          console.warn('Client test failed, but continuing:', testError);
+        // Handle potential WebSocket connection issues gracefully
+        if (client && typeof client.subscribe === 'function') {
+          try {
+            // Try to set up WebSocket subscription with error handling
+            console.log('Setting up WebSocket subscriptions...');
+          } catch (wsError) {
+            console.warn('WebSocket setup failed, but client will still work for REST API calls:', wsError);
+          }
         }
         
         setClobClient(client);
@@ -145,16 +298,16 @@ function App() {
         // Return mock order book data for testing
         return {
           bids: [
-            { price: "0.45", size: "100" },
-            { price: "0.44", size: "200" },
-            { price: "0.43", size: "150" }
+            { price: "0.00", size: "100" },
+            { price: "0.00", size: "200" },
+            { price: "0.00", size: "150" }
           ],
           asks: [
-            { price: "0.55", size: "100" },
-            { price: "0.56", size: "200" },
-            { price: "0.57", size: "150" }
+            { price: "0.00", size: "100" },
+            { price: "0.00", size: "200" },
+            { price: "0.00", size: "150" }
           ],
-          min_order_size: "5"
+          min_order_size: "0"
         };
       }
 
@@ -167,16 +320,16 @@ function App() {
       // Return mock data as fallback
       return {
         bids: [
-          { price: "0.45", size: "100" },
-          { price: "0.44", size: "200" },
-          { price: "0.43", size: "150" }
+          { price: "0.00", size: "100" },
+          { price: "0.00", size: "200" },
+          { price: "0.00", size: "150" }
         ],
         asks: [
-          { price: "0.55", size: "100" },
-          { price: "0.56", size: "200" },
-          { price: "0.57", size: "150" }
+          { price: "0.00", size: "100" },
+          { price: "0.00", size: "200" },
+          { price: "0.00", size: "150" }
         ],
-        min_order_size: "5"
+        min_order_size: "0"
       };
     }
   };
@@ -197,6 +350,45 @@ function App() {
       // Get the selected market to access its configuration
       if (!selectedMarket) {
         throw new Error('No market selected');
+      }
+
+      // Check USDC status before placing order
+      console.log('Checking USDC status before placing order...');
+      const usdcStatus = await checkUSDCStatus();
+      
+      if (!usdcStatus) {
+        throw new Error('Failed to check USDC status');
+      }
+
+      // Calculate required USDC amount for the order
+      const requiredUSDC = parseFloat(price) * parseFloat(size);
+      const currentAllowance = parseFloat(usdcStatus.allowance);
+      const currentBalance = parseFloat(usdcStatus.balance);
+
+      console.log('USDC Check:', {
+        requiredUSDC: requiredUSDC,
+        currentBalance: currentBalance,
+        currentAllowance: currentAllowance
+      });
+
+      // Check if user has enough USDC balance
+      if (currentBalance < requiredUSDC) {
+        throw new Error(`Insufficient USDC balance. Required: ${requiredUSDC.toFixed(2)} USDC, Available: ${currentBalance.toFixed(2)} USDC`);
+      }
+
+      // Check if allowance is sufficient
+      if (currentAllowance < requiredUSDC) {
+        console.log('Insufficient USDC allowance. Requesting approval...');
+        
+        // Calculate approval amount (approve 2x the required amount for safety)
+        const approvalAmount = Math.max(requiredUSDC * 2, 100).toString();
+        
+        try {
+          await approveUSDC(approvalAmount);
+          console.log('USDC allowance approved. Proceeding with order...');
+        } catch (approvalError) {
+          throw new Error(`USDC approval failed: ${approvalError.message}`);
+        }
       }
 
       const orderParams = {
@@ -222,6 +414,10 @@ function App() {
       );
 
       console.log('Order placed successfully:', response);
+      
+      // Refresh USDC status after successful order
+      await checkUSDCStatus();
+      
       return response;
     } catch (err) {
       console.error('Failed to place order:', err);
@@ -243,6 +439,7 @@ function App() {
         {!account ? (
           <WalletConnection 
             onConnect={(acc, prov) => {
+              console.log('Connected to account:', acc);
               setAccount(acc);
               setProvider(prov);
             }}
@@ -261,6 +458,27 @@ function App() {
                   </span>
                 )}
               </div>
+              {usdcBalance !== null && (
+                <div className="usdc-info">
+                  <div className="usdc-balance">
+                    <span>USDC Balance: {parseFloat(usdcBalance).toFixed(2)}</span>
+                  </div>
+                  {usdcAllowance !== null && (
+                    <div className="usdc-allowance">
+                      <span>USDC Allowance: {parseFloat(usdcAllowance).toFixed(2)}</span>
+                      {parseFloat(usdcAllowance) < 100 && (
+                        <button 
+                          onClick={() => approveUSDC("1000")}
+                          className="approve-btn"
+                          disabled={loading}
+                        >
+                          {loading ? 'Approving...' : 'Approve USDC'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
               <button 
                 onClick={() => {
                   setAccount(null);
@@ -271,6 +489,8 @@ function App() {
                   setMarkets([]);
                   setSelectedMarket(null);
                   setOrderBook(null);
+                  setUsdcBalance(null);
+                  setUsdcAllowance(null);
                 }}
                 className="disconnect-btn"
               >
@@ -289,6 +509,13 @@ function App() {
               <div className="loading">
                 <div className="spinner"></div>
                 <p>Loading...</p>
+                {loading && !clobClientReady && (
+                  <div className="signing-notice">
+                    <p>🔐 <strong>Please check MetaMask!</strong></p>
+                    <p>You may need to approve a signing request to create API credentials.</p>
+                    <p>This is required for trading functionality.</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -309,7 +536,7 @@ function App() {
 
             {selectedMarket && (
               <OrderBook 
-                tokenId={selectedMarket.yesTokenId}
+                selectedMarket={selectedMarket}  // ← Pass the entire market object
                 onOrderBookUpdate={setOrderBook}
                 onCheckOrderBook={checkMarketOrderBook}
               />
@@ -319,12 +546,21 @@ function App() {
               <div className="waiting-message">
                 <p>⚠️ CLOB client not ready - showing mock data</p>
                 <p>Real-time data and trading will be available once client initializes with API credentials.</p>
+                <div className="initialization-help">
+                  <p><strong>To initialize the client:</strong></p>
+                  <ol>
+                    <li>Click "Initialize Client" below</li>
+                    <li>Check MetaMask for a signing request</li>
+                    <li>Approve the signing request</li>
+                    <li>Wait for API credentials to be created</li>
+                  </ol>
+                </div>
                 <button 
                   onClick={initializeClobClient}
                   className="retry-btn"
                   disabled={loading}
                 >
-                  {loading ? 'Initializing...' : 'Retry Initialization'}
+                  {loading ? 'Initializing...' : 'Initialize Client'}
                 </button>
               </div>
             )}
